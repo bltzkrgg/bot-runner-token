@@ -8,6 +8,7 @@ import { RunnerScanner } from "./scanner.js";
 
 const CONFIG_PATH = process.env.CONFIG_PATH ?? "data/config.json";
 const ALERT_CACHE_PATH = process.env.ALERT_CACHE_PATH ?? "data/alert-cache.json";
+const SPIKE_CACHE_PATH = process.env.SPIKE_CACHE_PATH ?? "data/spike-cache.json";
 
 if (!process.env.DISCORD_TOKEN) throw new Error("Missing DISCORD_TOKEN");
 
@@ -24,6 +25,11 @@ const alertCache = new AlertCache({
   initial: await loadJson(ALERT_CACHE_PATH, {}),
   onChange: (cache) => saveJson(ALERT_CACHE_PATH, cache)
 });
+const spikeCache = new AlertCache({
+  ttlMs: 24 * 60 * 60 * 1000,
+  initial: await loadJson(SPIKE_CACHE_PATH, {}),
+  onChange: (cache) => saveJson(SPIKE_CACHE_PATH, cache)
+});
 
 const alertQueue = new AlertQueue({
   sendIntervalMs: 1500,
@@ -36,13 +42,14 @@ const alertQueue = new AlertQueue({
 });
 
 const gmgnClient = new GmgnClient(process.env);
-const scanners = ["solana", "robinhood", "bsc"].map((runnerType) => new RunnerScanner({
+const scanners = ["solana", "robinhood", "bsc"].flatMap((runnerType) => [false, true].map((spike) => new RunnerScanner({
   runnerType,
   configStore,
   gmgnClient,
   alertQueue,
-  alertCache
-}));
+  alertCache: spike ? spikeCache : alertCache,
+  spike
+})));
 
 for (const scanner of scanners) scanner.start();
 

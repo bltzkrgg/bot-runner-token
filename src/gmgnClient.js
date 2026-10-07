@@ -9,11 +9,13 @@ export class GmgnClient {
     this.env = env;
   }
 
-  async fetchCandidates(runnerType) {
-    const endpoint = this.env[ENDPOINTS[runnerType]];
+  async fetchCandidates(runnerType, { spike = false } = {}) {
+    const key = ENDPOINTS[runnerType];
+    const endpoint = (spike && this.env[key.replace("_URL", "_SPIKE_URL")]) || this.env[key];
     if (!endpoint) return [];
 
     const response = await fetch(endpoint, {
+      signal: AbortSignal.timeout(10000),
       headers: { "accept": "application/json", "user-agent": "gmgn-runner-discord-bot/0.1" }
     });
 
@@ -47,6 +49,14 @@ export function normalizeToken(item, runnerType) {
     name: first(item, ["name", "token_name"], "Unknown"),
     pool: first(item, ["pool", "dex", "platform", "exchange"], "GMGN"),
     ageMinutes: number(first(item, ["ageMinutes", "age_min", "open_minutes", "age_mins"])),
+    migrated: item?.migrated === true || item?.migration_status === "completed",
+    migratedAtSec: number(first(item, ["migratedAtSec", "open_timestamp"])),
+    volumeWindowEndSec: number(item?.volumeWindowEndSec),
+    volumeHistory5m: Array.isArray(item?.volumeHistory5m) ? item.volumeHistory5m.map((period) => ({
+      startTimeSec: number(period?.startTimeSec),
+      endTimeSec: number(period?.endTimeSec),
+      volumeUsd: number(period?.volumeUsd)
+    })) : [],
     priceUsd: number(first(item, ["priceUsd", "price_usd", "price"])),
     marketCapUsd: number(first(item, ["marketCapUsd", "market_cap_usd", "market_cap", "mc"])),
     volume5mUsd: number(first(item, ["volume5mUsd", "volume_5m_usd", "vol_5m_usd", "volume5m"])),
@@ -72,6 +82,7 @@ function first(item, keys, fallback = undefined) {
 }
 
 function number(value) {
+  if (value === undefined || value === null || value === "" || typeof value === "boolean") return undefined;
   const next = Number(value);
   return Number.isFinite(next) ? next : undefined;
 }

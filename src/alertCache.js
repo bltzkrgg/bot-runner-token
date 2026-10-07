@@ -5,14 +5,14 @@ export class AlertCache {
     this.seen = new Map(Object.entries(initial));
   }
 
-  has(key) {
+  has(key, ttlMs = this.ttlMs) {
     this.prune();
-    return this.seen.has(key);
+    return this.seen.has(key) && Date.now() - this.seen.get(key) <= ttlMs;
   }
 
   set(key) {
     this.seen.set(key, Date.now());
-    void this.onChange(this.toJSON());
+    return this.onChange(this.toJSON());
   }
 
   prune() {

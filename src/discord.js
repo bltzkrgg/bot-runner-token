@@ -49,7 +49,7 @@ export function createDiscordClient({ configStore, saveConfig, logger = console 
     if (!interaction.isChatInputCommand()) return;
 
     if (interaction.commandName === "getconfig") {
-      await interaction.reply({ content: codeBlock(JSON.stringify(configStore.get(), null, 2)), ephemeral: true });
+      await interaction.reply({ content: codeBlock(JSON.stringify(configStore.get())), ephemeral: true });
       return;
     }
 
@@ -66,7 +66,7 @@ export function createDiscordClient({ configStore, saveConfig, logger = console 
         });
       } catch (error) {
         await interaction.reply({
-          content: `Config error: ${error.message}\nSupported keys: ${supportedConfigKeys().map((item) => `\`${item}\``).join(", ")}`,
+          content: `Config error: ${error.message}\nUse the key autocomplete to choose a supported config key.`,
           ephemeral: true
         });
       }

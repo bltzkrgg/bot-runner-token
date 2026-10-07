@@ -22,7 +22,7 @@ const RUNNER_COPY = Object.freeze({
   }
 });
 
-export function formatRunnerAlert(runnerType, token) {
+export function formatRunnerAlert(runnerType, token, spike) {
   const copy = RUNNER_COPY[runnerType];
   if (!copy) throw new Error(`Unsupported runner type: ${runnerType}`);
 
@@ -31,9 +31,9 @@ export function formatRunnerAlert(runnerType, token) {
     : `${formatNumber(token.feesAmount)} ${copy.feeCurrency}`;
 
   return [
-    `${copy.emoji} **${copy.title}**`,
+    `${copy.emoji} **${spike ? copy.title.replace("TOKEN RUNNER", "VOLUME SPIKE") : copy.title}**`,
     "",
-    `**💊 ${safeText(token.symbol)} • ${formatAge(token.ageMinutes)}**`,
+    `**💊 ${safeText(token.symbol)} • ${spike ? `Migrated ${formatMigrationAge(spike.migratedAgeMin)} ago` : formatAge(token.ageMinutes)}**`,
     `${safeText(token.name)} | ${safeText(token.pool)}`,
     "",
     "┌ **MARKET**",
@@ -43,6 +43,13 @@ export function formatRunnerAlert(runnerType, token) {
     `├ Swaps 5m  : **${formatInteger(token.swaps5m)}**`,
     `├ Fees      : **${fees}**`,
     `└ Liquidity : **${formatCompactUsd(token.liquidityUsd)}**`,
+    ...(spike ? [
+      "", "┌ **SPIKE**",
+      `├ Baseline 5m : **${formatCompactUsd(spike.baselineUsd)}**`,
+      `├ Volume Now  : **${formatCompactUsd(token.volume5mUsd)}**`,
+      `├ Multiplier  : **${formatNumber(spike.multiplier)}×**`,
+      `└ Baseline    : **Rata-rata ${spike.baselinePeriods} periode 5m sebelumnya**`
+    ] : []),
     "",
     "┌ **ACTIVITY**",
     `├ Flow      : **Buy ${formatPercent(token.buyPercent)} • Sell ${formatPercent(token.sellPercent)}**`,
@@ -51,14 +58,20 @@ export function formatRunnerAlert(runnerType, token) {
     `└ Dex Paid  : **${token.dexPaid ? "Yes" : "No"}**`,
     "",
     "┌ **STATUS**",
-    `└ 🟢 **${copy.qualified}**`,
-    `   ${copy.reasons}`,
+    `└ 🟢 **${spike ? "MIGRATED VOLUME SPIKE" : copy.qualified}**`,
+    `   ${spike ? `MIGRATED • VOL ≥ ${formatCompactUsd(spike.minVolume5mUsd)} • SPIKE ≥ ${formatNumber(spike.minMultiplier)}×` : copy.reasons}`,
     "",
     "**CA**",
     safeText(token.ca),
     "",
     token.gmgnUrl
   ].filter((line) => line !== undefined && line !== null).join("\n");
+}
+
+function formatMigrationAge(minutes) {
+  if (minutes >= 1440) return `${Math.floor(minutes / 1440)}d`;
+  if (minutes >= 60) return `${Math.floor(minutes / 60)}h`;
+  return `${Math.floor(minutes)}m`;
 }
 
 function safeText(value) {

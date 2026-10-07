@@ -52,6 +52,18 @@ Config dapat diubah lewat `/setconfig` dan disimpan di `data/config.json`. Dafta
 
 ## Alur Notifikasi
 
+### Migrated Volume Spike
+
+Mode spike tersedia untuk Solana, Robinhood, dan BSC, terpisah dari filter runner baru. Token lama tetap boleh lolos. Default: volume rolling 5m >= USD 100K dan >= 3x baseline rata-rata enam periode 5m sebelumnya yang tidak overlap; cooldown 15 menit, polling 15 detik, maksimum 5 alert per scan. Semua mode spike awalnya nonaktif.
+
+```text
+/setconfig key:solanaSpikeAlerts.enabled value:true
+/setconfig key:robinhoodSpikeAlerts.enabled value:true
+/setconfig key:bscSpikeAlerts.enabled value:true
+```
+
+Endpoint harus menyediakan bukti migrated dan riwayat volume bertimestamp. Bot tidak menganggap token yang baru muncul di daftar sebagai spike. [Kontrak data, config, dan tes spike](docs/volume-spike.md).
+
 ```text
 Endpoint JSON -> polling per kategori -> normalisasi data -> filter runner
               -> cache duplikat -> antrean bersama -> Discord
@@ -60,7 +72,7 @@ Endpoint JSON -> polling per kategori -> normalisasi data -> filter runner
 Alert berisi harga, market cap, volume dan swaps 5 menit, fees, liquidity, flow buy/sell, top 10 holders, persentase wallet, status Dex Paid, CA, dan link GMGN.
 
 - Polling default 60 detik; dapat diatur 15-300 detik per kategori. Ini polling, bukan streaming instan.
-- Maksimum kandidat lolos yang diperiksa per scan default 5. Kandidat mengikuti urutan endpoint; tidak otomatis diurutkan berdasarkan volume.
+- Maksimum alert baru per scan default 5 per mode/kategori. Kandidat yang masih dalam cache tidak menghabiskan kuota. Kandidat mengikuti urutan endpoint; tidak otomatis diurutkan berdasarkan volume.
 - Cache menahan alert berulang untuk kategori + CA yang sama selama 30 menit. Sesudahnya token dapat mendapat alert lagi jika masih lolos filter.
 - Antrean bersama memberi jeda 1.5 detik setelah setiap pengiriman, menampung hingga 100 alert, dan melewatkan alert yang menunggu lebih dari 3 menit. Jika penuh, item tertua dibuang.
 - Jalur webhook menunggu `retry_after` saat Discord membalas HTTP 429. Ini tidak menjamin bebas rate limit dari GMGN atau Discord.
@@ -70,9 +82,9 @@ Alert berisi harga, market cap, volume dan swaps 5 menit, fees, liquidity, flow 
 - Endpoint dipanggil dengan GET dan header JSON; custom authorization header, pagination, dan WebSocket belum tersedia.
 - Volume 5m, total fees, dan umur sejak DEX open/migration harus dihitung/disediakan sumber data. Bot tidak menghitungnya dari transaksi mentah.
 - Data wajib untuk filter yang hilang membuat kandidat tidak lolos. Kolom informasi lain dapat tampil `N/A`; Dex Paid yang hilang saat ini ditampilkan sebagai `No`.
-- Cache dicatat sebelum alert terkirim. Kegagalan kirim dapat menahan alert sampai cache kedaluwarsa, dan antrean belum mempunyai pemulihan umum jika sender gagal. Pantau log saat menjalankan bot.
+- Cache runner biasa dicatat sebelum alert terkirim. Kegagalan kirim dapat menahan alert runner sampai cache kedaluwarsa. Cache spike dicatat setelah berhasil kirim, dengan reservasi sementara agar alert dalam antrean tidak diduplikasi. Error pengiriman dicatat dan antrean melanjutkan item berikutnya; spike yang gagal dapat dicoba pada scan berikutnya jika masih lolos.
 - Tidak ada pemeriksaan role/admin di handler `/setconfig`. Batasi akses command melalui pengaturan integrasi Discord sebelum dipakai di server bersama.
-- Pengujian otomatis mencakup validasi config dan filter runner. Integrasi GMGN live serta pengiriman ke Discord sungguhan membutuhkan kredensial dan pengujian tersendiri.
+- Pengujian otomatis mencakup config, filter runner, baseline spike, cooldown, format pesan, dan pemulihan antrean. Integrasi GMGN live serta pengiriman ke Discord sungguhan membutuhkan kredensial dan pengujian tersendiri.
 
 ## Perintah Proyek
 
@@ -96,5 +108,6 @@ Alert berisi harga, market cap, volume dan swaps 5 menit, fees, liquidity, flow 
 | `src/discord.js` | Slash commands dan pengiriman Discord |
 | `data/config.json` | Config runtime, dibuat setelah config disimpan |
 | `data/alert-cache.json` | Cache alert, dibuat setelah kandidat dicatat |
+| `data/spike-cache.json` | Cooldown spike persisten, dibuat setelah alert spike terkirim |
 
 `.env` dan folder `data/` diabaikan Git. Simpan token Discord dan URL webhook sebagai rahasia.

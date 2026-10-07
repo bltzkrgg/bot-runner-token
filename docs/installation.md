@@ -106,6 +106,8 @@ Setelah `.env` berubah, restart proses bot. Config slash commands dibaca pada si
 
 Setiap URL harus mengembalikan JSON saat dipanggil dengan GET. Bot menerima array langsung, atau array pada `tokens`, `items`, `list`, `data`, `data.tokens`, `data.items`, atau `data.list`.
 
+Untuk mode **Migrated Volume Spike**, endpoint harus menambahkan status migrated, waktu migration, dan riwayat volume. Lihat [panduan volume spike](volume-spike.md). URL opsional `GMGN_SOLANA_SPIKE_URL`, `GMGN_ROBINHOOD_SPIKE_URL`, dan `GMGN_BSC_SPIKE_URL` dapat memisahkan feed token lama/trending dari feed runner baru; jika kosong, masing-masing memakai URL kategori biasa. `SPIKE_CACHE_PATH` default `data/spike-cache.json` menyimpan cooldown spike.
+
 Kontrak data yang disarankan untuk satu kandidat Solana:
 
 ```json
@@ -276,7 +278,7 @@ Setelah endpoint live tersedia, pastikan sampel respons memenuhi kontrak langkah
 
 Bot online tidak membuktikan koneksi GMGN valid. URL kosong menghasilkan daftar kandidat kosong, dan format response yang tidak dikenali juga bisa menghasilkan nol kandidat tanpa error.
 
-Polling berjalan terpisah untuk tiga kategori. Pada interval 60 detik, tiap kategori melakukan kira-kira satu request per menit ditambah waktu request; semua kategori aktif berarti sekitar tiga request per menit. Jumlah kandidat bersamaan tidak menambah request detail karena kode memproses respons daftar yang sama. Batas provider tetap harus diperiksa.
+Polling runner berjalan terpisah untuk tiga kategori. Pada interval 60 detik, tiap kategori melakukan kira-kira satu request per menit ditambah waktu request; semua runner aktif berarti sekitar tiga request per menit. Scanner spike mempunyai loop terpisah: default 15 detik, sekitar empat request per menit per kategori. Semua enam mode aktif dengan default berarti sekitar 15 request per menit. Jumlah kandidat bersamaan tidak menambah request detail karena kode memproses respons daftar yang sama. Batas provider tetap harus diperiksa.
 
 Jika endpoint membalas error, scanner mencatat `[kategori] scan failed` dan menjadwalkan percobaan berikutnya 60 detik kemudian. Antrean Discord hanya mengatur pengiriman alert, bukan rate limit endpoint. Tidak ada streaming, pagination, atau jaminan semua kandidat akan terambil dari sumber.
 
@@ -366,7 +368,7 @@ Jika pull, instalasi, atau tes gagal, periksa error sebelum menjalankan layanan 
 | JSON parse error | URL kemungkinan mengembalikan HTML, login page, atau JSON rusak |
 | Alert menampilkan `N/A` | Field informasi tidak tersedia atau satuan/schema belum dinormalisasi |
 | Alert tidak masuk / send error | Permission channel, Channel ID atau webhook, dan log proses; cache bisa sudah terisi sebelum kirim gagal |
-| Alert berikutnya berhenti setelah send error | Antrean belum memulihkan semua error sender; perbaiki penyebab dan restart bot |
+| `Discord alert failed` | Periksa akses channel/webhook dan koneksi; antrean melanjutkan item berikutnya. Spike gagal bisa dicoba ulang saat scan berikutnya, runner biasa masih dapat tertahan cache |
 | Alert duplikat | Lebih dari satu instance, cache tidak persisten, atau TTL 30 menit sudah berakhir |
 | Config gagal disimpan | Akun proses mempunyai izin menulis folder `data/` dan disk tidak penuh |
 
