@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import { createConfigController } from "../src/control.js";
 import { mergeConfig } from "../src/config.js";
 import { createAlertBroadcaster } from "../src/delivery.js";
-import { buildCommands, handleDiscordInteraction } from "../src/discord.js";
+import { buildCommands, handleDiscordInteraction, createDiscordClient } from "../src/discord.js";
+import { looksLikeContractAddress } from "../src/address.js";
 
 test("shared config serializes changes from both platforms and failed writes do not publish", async () => {
   const saved = [];
@@ -60,4 +61,23 @@ test("Discord config updates reject non-admin callers", async () => {
   { configStore: { update: () => { updated = true; } } });
   assert.equal(updated, false);
   assert.match(messages[0], /Manage Server/);
+});
+
+test("Discord automatically scans bare Solana and EVM CAs in any accessible channel by default", async () => {
+  const addresses = ["So11111111111111111111111111111111111111112", "0x" + "a".repeat(40)];
+  const calls = [];
+  const client = createDiscordClient({ configStore: {}, scanService: { scan: async (ca) => { calls.push(ca); return "report"; } } });
+  try {
+    for (const ca of addresses) {
+      await new Promise((resolve) => {
+        client.emit("messageCreate", { author: { id: ca, bot: false }, channelId: "any-channel", content: ca,
+          reply: async (message) => { assert.equal(message.content, "report"); resolve(); } });
+      });
+    }
+    client.emit("messageCreate", { author: { id: "bot", bot: true }, content: addresses[0] });
+    client.emit("messageCreate", { author: { id: "chat", bot: false }, content: "hello" });
+    assert.deepEqual(calls, addresses);
+    assert(!looksLikeContractAddress("0x" + "g".repeat(40)));
+    assert(!looksLikeContractAddress("a CA inside a sentence"));
+  } finally { client.destroy(); }
 });

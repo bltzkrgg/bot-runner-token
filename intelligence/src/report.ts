@@ -22,7 +22,7 @@ export function developerSummary(s: Snapshot): string[] {
 }
 
 export function formatReport(s: Snapshot, a: Analysis, mode: ReportMode, cacheHit: boolean): string {
-  const lines = ["ANALISIS TOKEN SOLANA", ...(s.source === "mock" ? ["MODE DEMO: DATA BUATAN, BUKAN DATA CA INI."] : []),
+  const lines = [`ANALISIS TOKEN ${(s.chain ?? "solana").toUpperCase()}`, ...(s.source === "mock" ? ["MODE DEMO: DATA BUATAN, BUKAN DATA CA INI."] : []),
     `$${clean(s.symbol)} | ${clean(s.name)}`, s.mintAddress,
     `MC: ${number(s.marketCapUsd, " USD")} | Likuiditas: ${number(s.liquidityUsd, " USD")}`,
     `Umur: ${number(s.ageMinutes, "m")} | Holder: ${number(s.holderCount)}`,
@@ -46,7 +46,7 @@ export function formatReport(s: Snapshot, a: Analysis, mode: ReportMode, cacheHi
   }
   if (["scan", "quick", "smart"].includes(mode)) lines.push("", "SMART MONEY",
     `Smart wallet: ${number(s.smartMoneyCount)}`, `Holding: ${number(s.smartMoneyHoldingPct, "%")}`,
-    `Net flow: ${number(s.smartMoneyNetFlowSol, " SOL")}`);
+    `Net flow: ${number((s.chain ?? "solana") === "solana" ? s.smartMoneyNetFlowSol : null, " SOL")}`);
   if (["scan", "dev"].includes(mode)) lines.push("", "DEVELOPER", ...developerSummary(s));
   if (mode === "scan" && a.previous) lines.push("", "PERUBAHAN DARI SCAN SEBELUMNYA",
     `MC: ${number(a.previous.marketCapUsd)} -> ${number(s.marketCapUsd)}`,

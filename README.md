@@ -1,6 +1,8 @@
 # GMGN Runner and Token Intelligence
 
-Satu bot dengan fungsi yang sama di Discord dan Telegram: alert runner/spike, scan CA Solana, laporan intelligence, serta pengaturan bersama. Satu proses root menjalankan scanner sekali dan memakai satu service/cache intelligence untuk kedua platform. [Panduan bot terpadu](docs/unified-bot.md).
+Satu bot dengan fungsi yang sama di Discord dan Telegram: alert runner/spike, auto-analisis CA Solana/BSC/Robinhood, laporan intelligence, serta pengaturan bersama. Satu proses root menjalankan scanner sekali dan memakai satu service/cache intelligence untuk kedua platform. [Panduan bot terpadu](docs/unified-bot.md).
+
+Kirim CA **tanpa command** untuk auto-analisis Solana, BSC, atau Robinhood. Discord membaca pesan di semua channel/DM yang dapat diakses (allowlist opsional); aktifkan Message Content intent. CA EVM diperiksa pada BSC dan Robinhood, dengan hasil per jaringan. Intelligence tetap berlabel demo sampai adapter live terverifikasi.
 
 Bot mengirim informasi token runner kategori Solana, Robinhood, dan BSC ke tujuan Discord dan Telegram yang dikonfigurasi. Intelligence manual saat ini memakai data demo; endpoint GMGN live dan dataset historis nyata belum tersedia. Bot ini tidak melakukan transaksi.
 

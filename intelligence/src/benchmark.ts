@@ -39,7 +39,7 @@ export function comparableCohort(target: Snapshot, rows: Historical[], minimum: 
   const latest = new Map<string, Historical>();
   for (const row of rows) {
     const s = row.snapshot;
-    if (s.source !== target.source || s.mintAddress === target.mintAddress || Date.parse(s.snapshotAt) >= Date.parse(target.snapshotAt)) continue;
+    if ((s.chain ?? "solana") !== (target.chain ?? "solana") || s.source !== target.source || s.mintAddress === target.mintAddress || Date.parse(s.snapshotAt) >= Date.parse(target.snapshotAt)) continue;
     const old = latest.get(s.mintAddress);
     if (!old || Date.parse(s.snapshotAt) > Date.parse(old.snapshot.snapshotAt)) latest.set(s.mintAddress, row);
   }

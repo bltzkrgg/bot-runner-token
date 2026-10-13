@@ -1,5 +1,7 @@
 # Solana Token Intelligence
 
+Update: scanner runtime kini menerima CA Solana/BSC/Robinhood tanpa command di Discord/Telegram. Identity/cache/database/cohort terpisah per chain. Nama package dan tooling riset masih Solana, dan Python dataset builder tetap Solana-only. Semua hasil scanner default masih demo. [Perilaku multi-jaringan dan migrasi DB](../docs/unified-bot.md#ca-tanpa-command-dan-multi-jaringan).
+
 Engine intelligence **on-demand** kini dipakai bot terpadu Discord/Telegram di root. [Panduan startup terpadu](../docs/unified-bot.md). Folder ini berisi engine, database, riset, dan tooling offline; bukan bot production kedua. Analisis CA tetap hanya berjalan saat diminta; alert runner/spike otomatis dikelola runtime root.
 
 ## Status MVP

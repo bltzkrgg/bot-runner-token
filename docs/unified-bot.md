@@ -1,6 +1,6 @@
 # Bot Terpadu Discord dan Telegram
 
-Satu aplikasi, dua antarmuka. Runner, volume spike, scan CA, dan config tersedia pada kedua platform. Scanner otomatis hanya berjalan sekali per kategori/mode; laporan manual memakai satu service dan source cache bersama. Intelligence saat ini tetap **demo**, bukan data CA nyata. Penggabungan ini tidak menyelesaikan integrasi GMGN live.
+Satu aplikasi, dua antarmuka. Kirim CA langsung dan bot otomatis menganalisisnya, tanpa command. Jaringan yang tersedia: Solana, BSC, Robinhood. Runner, volume spike, dan config tersedia pada kedua platform. Scanner otomatis hanya berjalan sekali per kategori/mode; laporan CA memakai satu service dan source cache bersama. Intelligence saat ini tetap **demo**, bukan data CA nyata. Penggabungan ini tidak menyelesaikan integrasi GMGN live.
 
 ```text
                  GMGN-compatible runner feeds
@@ -37,7 +37,7 @@ Isi `.env`:
 | `DISCORD_TOKEN` | Token bot Discord; kosong jika platform itu tidak digunakan |
 | `DISCORD_CLIENT_ID`, `DISCORD_GUILD_ID` | Register slash commands pada server |
 | `DISCORD_ALERT_CHANNEL_ID` atau `DISCORD_ALERT_WEBHOOK_URL` | Tujuan alert Discord |
-| `DISCORD_SCAN_CHANNEL_IDS` | Channel IDs dipisah koma untuk scan CA sebagai pesan biasa |
+| `DISCORD_SCAN_CHANNEL_IDS` | Opsional: membatasi scan CA ke channel IDs dipisah koma; kosong berarti semua channel/DM yang dapat diakses bot |
 | `TELEGRAM_BOT_TOKEN` | Token BotFather; kosong jika platform itu tidak digunakan |
 | `TELEGRAM_ALERT_CHAT_ID` | ID chat/group/channel penerima alert otomatis |
 | `TELEGRAM_ADMIN_USER_IDS` | Numeric user IDs yang boleh `/setconfig`, dipisah koma |
@@ -48,7 +48,7 @@ Isi `.env`:
 
 Isi dua token dan dua tujuan jika ingin kedua platform aktif. Minimal satu token platform dan satu tujuan alert dibutuhkan startup. Untuk chat Telegram pribadi, pengguna harus memulai chat dengan bot lebih dulu; untuk channel/group, berikan bot hak mengirim pesan. `TELEGRAM_ALERT_CHAT_ID` harus diketahui sebelum startup; bot tidak menebak tujuan atau melakukan broadcast ke semua pengguna scanner.
 
-Untuk Discord plain-CA scan, isi allowlist channel dan aktifkan Message Content intent di Developer Portal. Jika tidak diisi, scan Discord menggunakan slash commands tanpa privileged intent. Pesan bot sendiri diabaikan sehingga alert CA tidak memicu scan ulang.
+Aktifkan **Message Content intent** di Discord Developer Portal > Bot agar bot membaca CA tanpa command. Bot meminta intent ini saat startup, termasuk jika allowlist kosong. Bot juga menerima CA melalui DM. Pesan bot/webhook diabaikan agar alert CA tidak memicu scan ulang. Jika ingin membatasi channel, isi `DISCORD_SCAN_CHANNEL_IDS`; daftar tersebut juga membatasi DM.
 
 ```bash
 npm run register
@@ -65,7 +65,7 @@ Register Discord ulang wajib setelah update ini karena daftar slash commands ber
 | Scan lengkap | `/scan ca:<CA>` | `/scan <CA>` |
 | Ringkasan | `/quick ca:<CA>` | `/quick <CA>` |
 | Developer / holders / smart / similar | Slash command dengan opsi `ca` | Command dengan CA setelah spasi |
-| CA sebagai pesan biasa | Channel yang di-allowlist | Pesan ke bot |
+| CA sebagai pesan biasa | Semua channel/DM yang bisa diakses; dapat dibatasi | Pesan pribadi/group yang diterima bot |
 | Lihat config | `/getconfig` | `/getconfig` |
 | Ubah config | `/setconfig key:<key> value:<value>` | `/setconfig <key> <value>` |
 
@@ -87,7 +87,17 @@ Contoh Discord:
 /quick ca:So11111111111111111111111111111111111111112
 ```
 
-Alert runner memakai data endpoint, sedangkan intelligence contoh di atas adalah fixture berlabel DEMO. Laporan dikirim ke tempat perintah diterima; tidak otomatis disebarkan ke platform lain. Alert otomatis dikirim ke semua tujuan yang diisi. Keduanya mempunyai fungsi yang sama tanpa harus pindah platform.
+Alert runner memakai data endpoint, sedangkan intelligence contoh di atas adalah fixture berlabel DEMO. Laporan dikirim ke tempat CA/perintah diterima; tidak otomatis disebarkan ke platform lain. Alert otomatis dikirim ke semua tujuan yang diisi. Keduanya mempunyai fungsi yang sama tanpa harus pindah platform.
+
+## CA Tanpa Command dan Multi-Jaringan
+
+Kirim satu alamat saja sebagai isi pesan (tanpa prefix `CA:`, URL, atau beberapa alamat). Address base58 32-byte diarahkan ke Solana. Address `0x` + 40 hex diperiksa pada BSC dan Robinhood karena format tidak menentukan jaringan. Jika source mengembalikan hasil di keduanya, dua laporan berlabel chain dikirim. Jika hanya satu ditemukan, laporkan yang ditemukan; kegagalan source pada chain lain ditandai, bukan dianggap token tidak ada. Mode mock menghasilkan demo pada kedua chain dan tidak membuktikan keberadaan CA di jaringan tersebut.
+
+Command lama tetap opsional untuk memilih report singkat atau subbagian. Pesan chat biasa tidak memicu analisis; validasi format bukan verifikasi token on-chain. Telegram group dengan privacy mode aktif mungkin tidak meneruskan pesan CA biasa: gunakan chat pribadi atau konfigurasi BotFather privacy mode agar pesan group diterima.
+
+Cache/dedup memakai `chain:CA`; CA EVM dinormalisasi lowercase, CA Solana tetap case-sensitive. Benchmark/history tidak dicampur antar chain. Data tanpa `chain` dari versi lama dianggap Solana. Research Python saat ini tetap Solana-only dan menolak memasukkan snapshot EVM ke dataset Solana.
+
+Untuk database lama, hentikan proses dan backup sebelum migration. Script `intelligence/scripts/migrate-multichain.sql` menambah chain default Solana serta mengganti unique constraint mint/developer menjadi chain+address tanpa menghapus snapshot. Jalankan pada database intelligence yang sudah mempunyai tabel, misalnya `psql -d sol_intel -f intelligence/scripts/migrate-multichain.sql` menggunakan koneksi akun DB yang sesuai. Database baru memakai `npm run db:push` dari folder intelligence. Migration pada PostgreSQL sungguhan belum diuji di environment ini.
 
 ## Pengiriman dan Batasan
 

@@ -1,13 +1,14 @@
-import { Client, Events, GatewayIntentBits, PermissionFlagsBits, REST, Routes, SlashCommandBuilder } from "discord.js";
+import { Client, Events, GatewayIntentBits, Partials, PermissionFlagsBits, REST, Routes, SlashCommandBuilder } from "discord.js";
 import { supportedConfigKeys } from "./config.js";
+import { looksLikeContractAddress } from "./address.js";
 
 const SCAN_COMMANDS = ["scan", "quick", "dev", "holders", "smart", "similar"];
 
 export function buildCommands() {
   return [
     ...SCAN_COMMANDS.map((name) => new SlashCommandBuilder().setName(name)
-      .setDescription(`Solana token intelligence: ${name}`)
-      .addStringOption((option) => option.setName("ca").setDescription("Solana mint address").setRequired(true))),
+      .setDescription(`Token intelligence: ${name}`)
+      .addStringOption((option) => option.setName("ca").setDescription("Solana / BSC / Robinhood CA").setRequired(true))),
     new SlashCommandBuilder().setName("help").setDescription("Show bot commands"),
     new SlashCommandBuilder()
       .setName("setconfig")
@@ -36,8 +37,8 @@ export async function registerCommands({ token, clientId, guildId }) {
 }
 
 export function createDiscordClient({ configStore, scanService, scanChannelIds = [], logger = console }) {
-  const client = new Client({ intents: [GatewayIntentBits.Guilds,
-    ...(scanChannelIds.length ? [GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] : [])] });
+  const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.DirectMessages, GatewayIntentBits.MessageContent], partials: [Partials.Channel] });
 
   client.once(Events.ClientReady, (readyClient) => {
     logger.log(`Discord bot logged in as ${readyClient.user.tag}`);
@@ -46,16 +47,21 @@ export function createDiscordClient({ configStore, scanService, scanChannelIds =
   client.on(Events.InteractionCreate, (interaction) => {
     void handleDiscordInteraction(interaction, { configStore, scanService }).catch((error) => logger.error("Discord interaction failed", error));
   });
+  const activeUsers = new Set();
   client.on(Events.MessageCreate, (message) => {
-    if (message.author.bot || !scanChannelIds.includes(message.channelId)) return;
+    if (message.author.bot || message.webhookId || (scanChannelIds.length && !scanChannelIds.includes(message.channelId))) return;
     const mint = message.content.trim();
-    if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint)) return;
+    if (!looksLikeContractAddress(mint)) return;
+    if (activeUsers.has(message.author.id) || activeUsers.size >= 20) return;
+    activeUsers.add(message.author.id);
     void (async () => {
       try {
         const report = await scanService.scan(mint);
         for (const content of splitDiscordText(report)) await message.reply({ content, allowedMentions: { parse: [] } });
       } catch {
         await message.reply({ content: "Scan gagal atau alamat mint tidak valid.", allowedMentions: { parse: [] } });
+      } finally {
+        activeUsers.delete(message.author.id);
       }
     })().catch((error) => logger.error("Discord message scan failed", error));
   });

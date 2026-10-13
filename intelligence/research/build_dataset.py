@@ -12,7 +12,7 @@ def build(rows):
     output = []
     for row in rows:
         snapshot, outcomes = row["snapshot"], row.get("outcomes", {})
-        if snapshot["source"] != "gmgn":
+        if snapshot["source"] != "gmgn" or snapshot.get("chain", "solana") != "solana":
             continue
         observed = pd.Timestamp(snapshot["snapshotAt"])
         available = pd.Timestamp(outcomes.get("availableAt"))

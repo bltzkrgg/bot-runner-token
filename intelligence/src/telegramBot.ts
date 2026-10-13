@@ -3,7 +3,7 @@ import { Bot, type Context } from "grammy";
 import type { Config } from "./config.js";
 import type { ScanService } from "./service.js";
 import type { UserFromGetMe } from "grammy/types";
-import { validateMint } from "./gmgn.js";
+import { candidateChains } from "./gmgn.js";
 import type { ReportMode } from "./report.js";
 
 export type SharedControls = {
@@ -16,7 +16,7 @@ export function createTelegramBot(runtime: { config: Config; service: ScanServic
   const { TELEGRAM_BOT_TOKEN: token, USER_HASH_SECRET: secret } = runtime.config;
   if (!token || !secret || secret.length < 32) throw new Error("TELEGRAM_BOT_TOKEN and USER_HASH_SECRET (>=32 chars) required");
   const bot = new Bot(token, { botInfo });
-  const help = "Kirim mint Solana atau /scan <CA>. Command: /quick /dev /holders /smart /similar <CA>. " +
+  const help = "Kirim CA Solana, BSC, atau Robinhood langsung untuk analisis. Command /quick /dev /holders /smart /similar tetap tersedia. " +
     "Alert runner/spike dan /getconfig /setconfig memakai engine bersama Discord. MODE DEMO intelligence memakai data buatan.";
   bot.command(["start", "help"], (ctx) => ctx.reply(help));
   bot.command("getconfig", async (ctx) => {
@@ -46,7 +46,7 @@ export function createTelegramBot(runtime: { config: Config; service: ScanServic
       // Plain text avoids treating untrusted token metadata as Telegram markup.
       for (let offset = 0; offset < report.length; offset += 3500) await ctx.reply(report.slice(offset, offset + 3500));
     } catch {
-      await ctx.reply(validateMint(mint) ? "Scan gagal. Coba lagi nanti; periksa log layanan." : "Alamat mint Solana tidak valid.");
+      await ctx.reply(candidateChains(mint).length ? "Scan gagal. Coba lagi nanti; periksa log layanan." : "Alamat CA tidak valid.");
     } finally { activeUsers.delete(user); }
   }
   for (const mode of ["scan", "quick", "dev", "holders", "smart", "similar"] as const) {
@@ -54,7 +54,7 @@ export function createTelegramBot(runtime: { config: Config; service: ScanServic
   }
   bot.on("message:text", async (ctx) => {
     const text = ctx.message.text.trim();
-    if (text.startsWith("/")) return;
+    if (text.startsWith("/") || !candidateChains(text).length) return;
     await reply(ctx, text, "scan");
   });
   bot.catch(() => console.error(JSON.stringify({ error_category: "TELEGRAM_ERROR" })));

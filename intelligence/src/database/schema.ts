@@ -3,11 +3,11 @@ import { pgTable, uuid, text, timestamp, doublePrecision, integer, boolean, json
 const time = (name: string) => timestamp(name, { withTimezone: true, mode: "string" });
 const id = () => uuid("id").defaultRandom().primaryKey();
 export const tokens = pgTable("intel_tokens", {
-  id: id(), mintAddress: text("mint_address").notNull().unique(),
+  id: id(), mintAddress: text("mint_address").notNull(), chain: text("chain").default("solana").notNull(),
   symbol: text("symbol"), name: text("name"), launchpad: text("launchpad"),
   createdAt: time("created_at"), firstSeenAt: time("first_seen_at").defaultNow().notNull(),
   lastSeenAt: time("last_seen_at").defaultNow().notNull()
-});
+}, (table) => [uniqueIndex("intel_token_chain_identity").on(table.chain, table.mintAddress)]);
 export const tokenSnapshots = pgTable("intel_token_snapshots", {
   id: id(), tokenId: uuid("token_id").notNull().references(() => tokens.id),
   snapshotAt: time("snapshot_at").notNull(), source: text("source").notNull(),
@@ -24,9 +24,9 @@ export const tokenSnapshots = pgTable("intel_token_snapshots", {
   rawSourceJson: jsonb("raw_source_json").notNull()
 }, (table) => [uniqueIndex("intel_snapshot_identity").on(table.tokenId, table.snapshotAt, table.source)]);
 export const developers = pgTable("intel_developers", {
-  id: id(), walletAddress: text("wallet_address").notNull().unique(),
+  id: id(), walletAddress: text("wallet_address").notNull(), chain: text("chain").default("solana").notNull(),
   firstSeenAt: time("first_seen_at").defaultNow().notNull(), lastUpdatedAt: time("last_updated_at").defaultNow().notNull()
-});
+}, (table) => [uniqueIndex("intel_developer_chain_identity").on(table.chain, table.walletAddress)]);
 export const developerSnapshots = pgTable("intel_developer_snapshots", {
   id: id(), developerId: uuid("developer_id").notNull().references(() => developers.id),
   snapshotAt: time("snapshot_at").notNull(), launchCount: integer("launch_count"),
@@ -60,6 +60,7 @@ export const smartWalletSnapshots = pgTable("intel_smart_wallet_snapshots", {
   medianRoi: doublePrecision("median_roi"), rugExposureRate: doublePrecision("rug_exposure_rate"), rawSourceJson: jsonb("raw_source_json")
 });
 export const scanRequests = pgTable("intel_scan_requests", {
+  chain: text("chain").default("solana").notNull(),
   id: id(), mintAddress: text("mint_address").notNull(), requestedAt: time("requested_at").defaultNow().notNull(),
   telegramUserIdHash: text("telegram_user_id_hash"), sourceCacheHit: boolean("source_cache_hit").notNull(),
   analysisVersion: text("analysis_version").notNull()

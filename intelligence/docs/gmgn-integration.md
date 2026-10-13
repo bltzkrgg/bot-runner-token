@@ -24,3 +24,5 @@ Metadata price, liquidity, supply dan holders mempunyai satuan/schema berbeda; j
 TODO live adapter: sampel respons resmi info/security/pool/holders/developer/smart money + exact unit/semantics; bukti kemampuan history developer dan outcome; pagination total coverage; auth headers dan rate-limit plan; respons token tidak ditemukan; aturan cache per endpoint. Tidak mengestimasi persentase keseluruhan dari subset top holders. Fitur yang tidak tersedia harus tetap `Data tidak tersedia`/`HISTORICAL_FIELD_UNAVAILABLE`.
 
 Interface adapter sudah tersedia, fixture adalah **kontrak internal sintetis**, bukan contoh payload GMGN resmi. Mode `live` fail-fast sampai kontrak diverifikasi; konfigurasi token saja belum mengaktifkan live.
+
+Adapter sekarang menerima `fetchToken(address, chain)` dengan chain `solana`, `bsc`, atau `robinhood`. CA EVM plain akan dicoba pada BSC dan Robinhood; adapter live wajib membedakan `TOKEN_NOT_FOUND` dari auth/rate-limit/network failure dan menyertakan chain respons yang benar. Field SOL net flow tidak dipakai untuk EVM. Live multi-chain tetap belum terhubung atau diuji; demo multi-chain bukan klaim coverage GMGN.

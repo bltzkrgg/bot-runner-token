@@ -3,7 +3,10 @@ import { z } from "zod";
 const optionalNumber = z.number().finite().nonnegative().nullish();
 const percent = z.number().finite().min(0).max(100).nullish();
 const count = z.number().int().nonnegative().nullish();
+export const chainSchema = z.enum(["solana", "bsc", "robinhood"]);
+export type Chain = z.infer<typeof chainSchema>;
 export const snapshotSchema = z.object({
+  chain: chainSchema.optional(),
   mintAddress: z.string(), snapshotAt: z.string().datetime(),
   source: z.enum(["mock", "gmgn"]),
   symbol: z.string().max(100).nullish(), name: z.string().max(200).nullish(),
