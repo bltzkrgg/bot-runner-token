@@ -1,5 +1,7 @@
 # Arsitektur
 
+Update integrasi: service/cache/repository di folder ini kini digunakan bersama oleh Discord dan Telegram dari `src/index.js` root. Scanner runner/spike dan config bersama dikelola runtime root; entrypoint Telegram standalone hanya untuk development. Lihat [panduan terpadu](../../docs/unified-bot.md).
+
 Telegram/CLI -> validasi mint -> SourceCache -> GmgnAdapter -> Zod Snapshot -> Repository -> cohort/similarity -> analysis -> report Indonesia -> pengguna. Scan berhenti setelah report. Tidak ada scheduler token atau order execution.
 
 Folder `intelligence/` mempunyai package/dependency sendiri. Npm lockfile dipakai mengikuti repo induk; tidak memigrasikan project Discord ke pnpm. Modular satu proses dipilih daripada monorepo dengan banyak packages yang belum diperlukan.

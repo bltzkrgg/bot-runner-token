@@ -1,6 +1,6 @@
 # Solana Token Intelligence
 
-Modul scanner Telegram **on-demand**, terpisah dari bot alert Discord di folder induk. Mengirim CA memicu satu scan; tidak ada alert otomatis, polling token, transaksi, private key, atau monitoring lanjutan di modul ini. Telegram long polling hanya menerima pesan pengguna, bukan memantau token.
+Engine intelligence **on-demand** kini dipakai bot terpadu Discord/Telegram di root. [Panduan startup terpadu](../docs/unified-bot.md). Folder ini berisi engine, database, riset, dan tooling offline; bukan bot production kedua. Analisis CA tetap hanya berjalan saat diminta; alert runner/spike otomatis dikelola runtime root.
 
 ## Status MVP
 
@@ -35,7 +35,7 @@ npm start
 
 Command: `/start`, `/help`, `/scan <CA>`, `/quick <CA>`, `/dev <CA>`, `/holders <CA>`, `/smart <CA>`, `/similar <CA>`. CA tanpa command juga diterima. Validasi sintaks tidak membuktikan address tersebut adalah mint token yang ada di chain; adapter live nantinya harus memverifikasi keberadaan token.
 
-Jalankan proses ini secara terpisah dari `npm start` di root (Discord). Config Discord tidak mengatur scanner Telegram.
+Perintah `npm start` di folder ini hanya entrypoint scanner standalone untuk development. Untuk penggunaan lengkap jalankan `npm start` dari root; jangan jalankan kedua proses bersamaan. Config runner/spike kini sama untuk Discord dan Telegram.
 
 ## PostgreSQL dan Benchmark
 

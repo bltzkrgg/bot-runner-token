@@ -1,5 +1,7 @@
 # Deployment Ubuntu 24.04
 
+Untuk penggunaan bot penuh, ikuti [deployment terpadu](../../docs/unified-bot.md) dan gunakan ecosystem.config.cjs root. Konfigurasi process di bawah adalah scanner development legacy; jangan menjalankannya bersamaan dengan runtime root.
+
 Gunakan Node.js LTS yang didukung (minimal 20), Python 3.11+ untuk riset offline, PostgreSQL, akun Linux non-root. Contoh repo berada di `/home/runner/bot-runner-token`; sesuaikan path.
 
 ```bash

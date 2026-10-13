@@ -1,8 +1,8 @@
-# GMGN Runner Discord Bot
+# GMGN Runner and Token Intelligence
 
-Modul tambahan: [Solana Token Intelligence Telegram](intelligence/README.md), scanner CA on-demand dengan benchmark engine dan laporan Indonesia. Masih mode demo offline; koneksi GMGN live dan dataset historis nyata belum tersedia. Modul terpisah ini tidak mengubah scanner/alert Discord.
+Satu bot dengan fungsi yang sama di Discord dan Telegram: alert runner/spike, scan CA Solana, laporan intelligence, serta pengaturan bersama. Satu proses root menjalankan scanner sekali dan memakai satu service/cache intelligence untuk kedua platform. [Panduan bot terpadu](docs/unified-bot.md).
 
-Bot Discord untuk mengirim informasi token runner kategori Solana, Robinhood, dan BSC. Bot melakukan polling endpoint JSON, memfilter kandidat berdasarkan config, lalu mengirim alert ke channel Discord atau webhook. Bot ini tidak melakukan transaksi.
+Bot mengirim informasi token runner kategori Solana, Robinhood, dan BSC ke tujuan Discord dan Telegram yang dikonfigurasi. Intelligence manual saat ini memakai data demo; endpoint GMGN live dan dataset historis nyata belum tersedia. Bot ini tidak melakukan transaksi.
 
 **Status integrasi:** scanner dan pengiriman Discord sudah diimplementasikan. Repository ini belum menyediakan endpoint GMGN live yang terverifikasi, API key, atau adapter autentikasi GMGN. Kamu harus menyediakan endpoint JSON yang kompatibel sebelum menerima alert dari data live. Mengisi URL halaman website GMGN saja tidak cukup.
 
@@ -10,7 +10,7 @@ Kategori `robinhood` adalah nama runner di kode. Kode tidak memverifikasi dukung
 
 ## Instalasi
 
-Ikuti [tutorial instalasi dari awal sampai akhir](docs/installation.md). Tutorial mencakup pembuatan bot Discord, pengaturan endpoint, tes notifikasi lokal, dan menjalankan bot di VPS.
+Ikuti [panduan instalasi bot terpadu](docs/unified-bot.md). [Tutorial Discord](docs/installation.md) tetap memuat detail pembuatan aplikasi, endpoint dan tes fixture; startup sekarang memakai proses root terpadu.
 
 Ringkasan setelah aplikasi Discord dan endpoint siap:
 
@@ -18,6 +18,7 @@ Ringkasan setelah aplikasi Discord dan endpoint siap:
 git clone https://github.com/bltzkrgg/bot-runner-token.git
 cd bot-runner-token
 npm ci
+npm run setup
 cp .env.example .env
 ```
 
@@ -32,7 +33,7 @@ npm start
 Semua runner **nonaktif secara default**. Aktifkan dari Discord setelah memeriksa config:
 
 ```text
-/getconfig
+  /getconfig
 /setconfig key:tokenAlerts.enabled value:true
 /setconfig key:robinhoodAlerts.enabled value:true
 /setconfig key:bscAlerts.enabled value:true
@@ -85,7 +86,7 @@ Alert berisi harga, market cap, volume dan swaps 5 menit, fees, liquidity, flow 
 - Volume 5m, total fees, dan umur sejak DEX open/migration harus dihitung/disediakan sumber data. Bot tidak menghitungnya dari transaksi mentah.
 - Data wajib untuk filter yang hilang membuat kandidat tidak lolos. Kolom informasi lain dapat tampil `N/A`; Dex Paid yang hilang saat ini ditampilkan sebagai `No`.
 - Cache runner biasa dicatat sebelum alert terkirim. Kegagalan kirim dapat menahan alert runner sampai cache kedaluwarsa. Cache spike dicatat setelah berhasil kirim, dengan reservasi sementara agar alert dalam antrean tidak diduplikasi. Error pengiriman dicatat dan antrean melanjutkan item berikutnya; spike yang gagal dapat dicoba pada scan berikutnya jika masih lolos.
-- Tidak ada pemeriksaan role/admin di handler `/setconfig`. Batasi akses command melalui pengaturan integrasi Discord sebelum dipakai di server bersama.
+- `/setconfig` membutuhkan Manage Server permission di Discord atau ID Telegram pada admin allowlist. Kedua platform mengubah config yang sama.
 - Pengujian otomatis mencakup config, filter runner, baseline spike, cooldown, format pesan, dan pemulihan antrean. Integrasi GMGN live serta pengiriman ke Discord sungguhan membutuhkan kredensial dan pengujian tersendiri.
 
 ## Perintah Proyek

@@ -1,5 +1,7 @@
 # Tutorial Instalasi
 
+Startup sekarang memakai [bot terpadu Discord dan Telegram](unified-bot.md). Setelah `npm ci` root, jalankan `npm run setup`; satu proses root menyediakan alert dan scan di kedua platform. Detail Discord/fixture di bawah tetap berlaku, tetapi unit systemd harus menambahkan `--import tsx` pada ExecStart. Handler `/setconfig` sekarang memerlukan Manage Server permission.
+
 Panduan ini membawa kamu dari komputer kosong sampai tes alert masuk Discord, lalu menyiapkan penggunaan endpoint live dan layanan VPS. Semua perintah terminal dijalankan di folder repository kecuali disebutkan lain.
 
 **Prasyarat data live:** repository belum berisi endpoint GMGN live yang terverifikasi. Bot bisa diuji dengan fixture lokal pada langkah 8, tetapi untuk memantau runner sungguhan kamu tetap perlu sumber JSON kompatibel yang menyediakan data GMGN.

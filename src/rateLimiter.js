@@ -32,7 +32,7 @@ export class AlertQueue {
           await item.onSent?.();
         }
       } catch (error) {
-        this.logger.error("Discord alert failed", error);
+        this.logger.error("Alert delivery failed", error);
       } finally {
         item.onSettled?.();
       }

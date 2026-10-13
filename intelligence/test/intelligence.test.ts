@@ -142,3 +142,28 @@ test("Telegram plain CA and commands send Indonesian fixture reports without ext
   assert(sent.slice(0, 3).every((text) => text.includes("MODE DEMO")));
   assert.match(sent[3]!, /tidak valid/);
 });
+
+test("Telegram config commands use shared controls and restrict writes to configured admins", async () => {
+  let enabled = false;
+  const service = new ScanService(new SourceCache(new MockGmgnAdapter(), 120000), new MemoryRepository(), config, () => {});
+  const bot = createTelegramBot({ config: { ...config, TELEGRAM_BOT_TOKEN: "123456:offline-test", USER_HASH_SECRET: "x".repeat(32) }, service },
+    { id: 123456, is_bot: true, first_name: "Test", username: "testbot", can_join_groups: true,
+      can_read_all_group_messages: false, supports_inline_queries: false, can_connect_to_business: false,
+      has_main_web_app: false, has_topics_enabled: false, allows_users_to_create_topics: false,
+      can_manage_bots: false, supports_join_request_queries: false },
+    { adminIds: ["1"], controls: { get: () => ({ tokenAlerts: { enabled } }),
+      update: async (key, value) => { assert.equal(key, "tokenAlerts.enabled"); const previousValue = enabled; enabled = value === "true"; return { previousValue, nextValue: enabled }; } } });
+  const sent: string[] = [];
+  bot.api.config.use(async (_previous, _method, payload) => {
+    sent.push((payload as { text: string }).text);
+    return { ok: true, result: { message_id: 1, date: 0, chat: { id: 1, type: "private" } } } as never;
+  });
+  for (const [index, user] of [2, 1].entries()) {
+    await bot.handleUpdate({ update_id: index, message: { message_id: index + 1, date: 0,
+      chat: { id: user, type: "private", first_name: "Test" }, from: { id: user, is_bot: false, first_name: "Test" },
+      text: "/setconfig tokenAlerts.enabled true", entities: [{ type: "bot_command", offset: 0, length: 10 }] } });
+    assert.equal(enabled, user === 1);
+  }
+  assert.match(sent[0]!, /Hanya admin/);
+  assert.match(sent[1]!, /Updated/);
+});

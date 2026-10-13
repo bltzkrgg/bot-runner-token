@@ -1,10 +1,17 @@
-import { Client, Events, GatewayIntentBits, REST, Routes, SlashCommandBuilder } from "discord.js";
-import { setConfigValue, supportedConfigKeys } from "./config.js";
+import { Client, Events, GatewayIntentBits, PermissionFlagsBits, REST, Routes, SlashCommandBuilder } from "discord.js";
+import { supportedConfigKeys } from "./config.js";
+
+const SCAN_COMMANDS = ["scan", "quick", "dev", "holders", "smart", "similar"];
 
 export function buildCommands() {
   return [
+    ...SCAN_COMMANDS.map((name) => new SlashCommandBuilder().setName(name)
+      .setDescription(`Solana token intelligence: ${name}`)
+      .addStringOption((option) => option.setName("ca").setDescription("Solana mint address").setRequired(true))),
+    new SlashCommandBuilder().setName("help").setDescription("Show bot commands"),
     new SlashCommandBuilder()
       .setName("setconfig")
+      .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
       .setDescription("Update runner bot config")
       .addStringOption((option) =>
         option.setName("key")
@@ -28,14 +35,40 @@ export async function registerCommands({ token, clientId, guildId }) {
   await rest.put(Routes.applicationGuildCommands(clientId, guildId), { body: buildCommands() });
 }
 
-export function createDiscordClient({ configStore, saveConfig, logger = console }) {
-  const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+export function createDiscordClient({ configStore, scanService, scanChannelIds = [], logger = console }) {
+  const client = new Client({ intents: [GatewayIntentBits.Guilds,
+    ...(scanChannelIds.length ? [GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] : [])] });
 
   client.once(Events.ClientReady, (readyClient) => {
     logger.log(`Discord bot logged in as ${readyClient.user.tag}`);
   });
 
-  client.on(Events.InteractionCreate, async (interaction) => {
+  client.on(Events.InteractionCreate, (interaction) => {
+    void handleDiscordInteraction(interaction, { configStore, scanService }).catch((error) => logger.error("Discord interaction failed", error));
+  });
+  client.on(Events.MessageCreate, (message) => {
+    if (message.author.bot || !scanChannelIds.includes(message.channelId)) return;
+    const mint = message.content.trim();
+    if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint)) return;
+    void (async () => {
+      try {
+        const report = await scanService.scan(mint);
+        for (const content of splitDiscordText(report)) await message.reply({ content, allowedMentions: { parse: [] } });
+      } catch {
+        await message.reply({ content: "Scan gagal atau alamat mint tidak valid.", allowedMentions: { parse: [] } });
+      }
+    })().catch((error) => logger.error("Discord message scan failed", error));
+  });
+  return client;
+}
+
+export function splitDiscordText(text) {
+  const chunks = [];
+  for (let offset = 0; offset < text.length; offset += 1900) chunks.push(text.slice(offset, offset + 1900));
+  return chunks;
+}
+
+export async function handleDiscordInteraction(interaction, { configStore, scanService }) {
     if (interaction.isAutocomplete()) {
       const focused = interaction.options.getFocused().toLowerCase();
       const choices = supportedConfigKeys()
@@ -48,18 +81,37 @@ export function createDiscordClient({ configStore, saveConfig, logger = console 
 
     if (!interaction.isChatInputCommand()) return;
 
+    if (interaction.commandName === "help") {
+      await interaction.reply({ content: "/scan /quick /dev /holders /smart /similar <ca>\n/getconfig /setconfig key value\nRunner dan spike alerts memakai config bersama Discord/Telegram. Intelligence saat ini demo.", ephemeral: true });
+      return;
+    }
+    if (SCAN_COMMANDS.includes(interaction.commandName)) {
+      await interaction.deferReply({ ephemeral: true });
+      try {
+        const report = await scanService.scan(interaction.options.getString("ca", true), interaction.commandName);
+        const [first, ...rest] = splitDiscordText(report);
+        await interaction.editReply({ content: first, allowedMentions: { parse: [] } });
+        for (const content of rest) await interaction.followUp({ content, ephemeral: true, allowedMentions: { parse: [] } });
+      } catch {
+        await interaction.editReply({ content: "Scan gagal atau alamat mint tidak valid. Periksa log layanan." });
+      }
+      return;
+    }
+
     if (interaction.commandName === "getconfig") {
       await interaction.reply({ content: codeBlock(JSON.stringify(configStore.get())), ephemeral: true });
       return;
     }
 
     if (interaction.commandName === "setconfig") {
+      if (!interaction.inGuild() || !interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
+        await interaction.reply({ content: "Manage Server permission required.", ephemeral: true });
+        return;
+      }
       const key = interaction.options.getString("key", true);
       const value = interaction.options.getString("value", true);
       try {
-        const result = setConfigValue(configStore.get(), key, value);
-        configStore.set(result.config);
-        await saveConfig(result.config);
+        const result = await configStore.update(key, value);
         await interaction.reply({
           content: `Updated \`${key}\`: \`${result.previousValue}\` → \`${result.nextValue}\``,
           ephemeral: true
@@ -71,9 +123,6 @@ export function createDiscordClient({ configStore, saveConfig, logger = console 
         });
       }
     }
-  });
-
-  return client;
 }
 
 export async function sendAlert({ client, channelId, webhookUrl, message }) {
@@ -81,7 +130,7 @@ export async function sendAlert({ client, channelId, webhookUrl, message }) {
     const response = await fetch(webhookUrl, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ content: message })
+      body: JSON.stringify({ content: message, allowed_mentions: { parse: [] } })
     });
 
     if (response.status === 429) {
@@ -96,7 +145,7 @@ export async function sendAlert({ client, channelId, webhookUrl, message }) {
 
   if (!channelId) throw new Error("Missing DISCORD_ALERT_CHANNEL_ID or DISCORD_ALERT_WEBHOOK_URL");
   const channel = await client.channels.fetch(channelId);
-  await channel.send(message);
+  await channel.send({ content: message, allowedMentions: { parse: [] } });
 }
 
 function codeBlock(value) {
