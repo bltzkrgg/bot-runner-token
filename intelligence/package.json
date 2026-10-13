@@ -1,0 +1,33 @@
+{
+  "name": "solana-token-intelligence",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node --import tsx src/telegram.ts",
+    "scan": "node --import tsx src/cli.ts",
+    "benchmark:import": "node --import tsx src/import.ts",
+    "db:push": "drizzle-kit push",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test test/*.test.ts"
+  },
+  "dependencies": {
+    "bs58": "^6.0.0",
+    "dotenv": "^16.4.5",
+    "drizzle-orm": "^0.45.4",
+    "grammy": "^1.38.0",
+    "pg": "^8.16.0",
+    "zod": "^3.25.0"
+  },
+  "overrides": {
+    "esbuild": "^0.25.12"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/pg": "^8.15.0",
+    "drizzle-kit": "^0.31.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0"
+  }
+}

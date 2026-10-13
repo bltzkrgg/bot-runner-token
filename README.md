@@ -1,5 +1,7 @@
 # GMGN Runner Discord Bot
 
+Modul tambahan: [Solana Token Intelligence Telegram](intelligence/README.md), scanner CA on-demand dengan benchmark engine dan laporan Indonesia. Masih mode demo offline; koneksi GMGN live dan dataset historis nyata belum tersedia. Modul terpisah ini tidak mengubah scanner/alert Discord.
+
 Bot Discord untuk mengirim informasi token runner kategori Solana, Robinhood, dan BSC. Bot melakukan polling endpoint JSON, memfilter kandidat berdasarkan config, lalu mengirim alert ke channel Discord atau webhook. Bot ini tidak melakukan transaksi.
 
 **Status integrasi:** scanner dan pengiriman Discord sudah diimplementasikan. Repository ini belum menyediakan endpoint GMGN live yang terverifikasi, API key, atau adapter autentikasi GMGN. Kamu harus menyediakan endpoint JSON yang kompatibel sebelum menerima alert dari data live. Mengisi URL halaman website GMGN saja tidak cukup.
